@@ -80,3 +80,23 @@ func TestEmbedNonMultipleOfFour(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "multiple of 4")
 }
+
+func TestNewHTTPEmbedderTrimsTrailingSlash(t *testing.T) {
+	require.Equal(t, "http://custom:9", NewHTTPEmbedder("http://custom:9/").baseURL)
+	require.Equal(t, "http://custom:9/v1", NewHTTPEmbedder("http://custom:9/v1//").baseURL)
+	require.Equal(t, DefaultBaseURL, NewHTTPEmbedder("/").baseURL,
+		"a base URL of only slashes falls back to the default")
+}
+
+func TestEmbedRequestPathWithTrailingSlashBaseURL(t *testing.T) {
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_ = json.NewEncoder(w).Encode(embedResponse{EmbeddingB64: encodeEmbedding([]float32{1})})
+	}))
+	t.Cleanup(srv.Close)
+
+	_, err := NewHTTPEmbedder(srv.URL+"/").Embed(context.Background(), "q")
+	require.NoError(t, err)
+	require.Equal(t, "/embed", gotPath, "a trailing slash in the base URL must not produce //embed")
+}

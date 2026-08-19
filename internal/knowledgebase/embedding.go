@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/openmind/om1/internal/httpclient"
@@ -30,8 +31,10 @@ type HTTPEmbedder struct {
 	client  *http.Client
 }
 
-// NewHTTPEmbedder creates an embedder pointing at baseURL.
+// NewHTTPEmbedder creates an embedder pointing at baseURL. Trailing slashes
+// are trimmed so that joining the "/embed" path cannot produce a double slash.
 func NewHTTPEmbedder(baseURL string) *HTTPEmbedder {
+	baseURL = strings.TrimRight(baseURL, "/")
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
